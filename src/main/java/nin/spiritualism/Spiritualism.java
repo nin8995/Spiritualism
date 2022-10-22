@@ -1,5 +1,6 @@
 package nin.spiritualism;
 
+import com.mojang.authlib.GameProfile;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.commands.Commands;
@@ -15,13 +16,17 @@ import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.GameType;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.EndPortalBlock;
 import net.minecraft.world.level.block.RespawnAnchorBlock;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.Material;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.capabilities.*;
+import net.minecraftforge.common.util.FakePlayerFactory;
 import net.minecraftforge.common.util.INBTSerializable;
 import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
@@ -77,6 +82,7 @@ public class Spiritualism {
 
         // Register ourselves for server and other game events we are interested in
         MinecraftForge.EVENT_BUS.register(this);
+        MinecraftForge.EVENT_BUS.register(EventHandler.class);
     }
 
     private void commonSetup(final FMLCommonSetupEvent event) {
@@ -112,18 +118,27 @@ public class Spiritualism {
         event.register(SpiritHandler.class);
     }
 
-
     @SubscribeEvent
     public void onPlayerDeath(LivingDeathEvent e) {
         if (e.getEntity() instanceof ServerPlayer sp) {
             getSpirit(sp).ifPresent(sh -> {
                 sh.soulPower -= sh.getActualUsage();
                 if (sh.isDead() && !sp.isSpectator()) {
+                    sh.previousRespawnDimension = sp.getRespawnDimension();
+                    sh.setPreviousRespawnPosition(sp.getRespawnPosition());
+                    sp.setRespawnPosition(sp.getLevel().dimension(), new BlockPos(sp.position()), 0, true, false);
+                }
+            });
+        }
+    }
+
+    @SubscribeEvent
+    public void onPlayerRespawn(PlayerEvent.PlayerRespawnEvent e) {
+        if (e.getEntity() instanceof ServerPlayer sp) {
+            getSpirit(sp).ifPresent(sh -> {
+                if (sh.isDead() && !sp.isSpectator()) {
                     sh.previousGameType = sp.gameMode.getGameModeForPlayer();
                     sp.setGameMode(GameType.SPECTATOR);
-                    sh.previousRespawnDimension = sp.getRespawnDimension();
-                    sh.previousRespawnPosition = sp.getRespawnPosition();
-                    sp.setRespawnPosition(sp.getLevel().dimension(), new BlockPos(sp.position()), 0, true, false);
                 }
             });
         }
@@ -132,10 +147,10 @@ public class Spiritualism {
     @SubscribeEvent
     public void onPlayerClone(PlayerEvent.Clone e) {
         getSpirit((ServerPlayer) e.getOriginal()).ifPresent(op ->
-            e.getEntity().getCapability(Spiritualism.SPIRIT).ifPresent(np -> {
-                np.deserializeNBT(op.serializeNBT());
-                players.put(e.getEntity().getUUID(), LazyOptional.of(() -> np));
-            })
+                e.getEntity().getCapability(Spiritualism.SPIRIT).ifPresent(np -> {
+                    np.deserializeNBT(op.serializeNBT());
+                    players.put(e.getEntity().getUUID(), LazyOptional.of(() -> np));
+                })
         );
     }
 
@@ -145,14 +160,15 @@ public class Spiritualism {
         dispatcher.register(Commands.literal("resurrect").executes(context -> {
             if (context.getSource().getEntity() instanceof ServerPlayer sp)
                 getSpirit(sp).ifPresent(sh -> {
-                    if(sh.isLiving())
+                    if (sh.isLiving())
                         return;
                     sh.soulPower += SpiritualismConfig.soulDivision;
                     if (sh.isLiving()) {
                         sp.setGameMode(sh.previousGameType);
-                        sp.setRespawnPosition(sh.previousRespawnDimension, sh.previousRespawnPosition, 0, false, false);
-                        /*if(!sp.getLevel().isClientSide)
-                            sp.getServer().getPlayerList().respawn(sp, false);*/
+                        sp.setRespawnPosition(sh.previousRespawnDimension, sh.getPreviousRespawnPosition(), 0, false, false);
+                        Optional<Vec3> ovec =  sh.getPreviousRespawnPosition() != null ? Player.findRespawnPositionAndUseSpawnBlock(sp.server.getLevel(sh.previousRespawnDimension), sh.getPreviousRespawnPosition(), 0, false, false) : Optional.empty();
+                        var vec = ovec.map(BlockPos::new).orElseGet(() -> sp.server.overworld().getSharedSpawnPos());
+                        sp.teleportTo(ovec.isPresent() ? sp.server.getLevel(sh.previousRespawnDimension) : sp.server.overworld(),vec.getX(), vec.getY(), vec.getZ(),0,0);
                     }
                 });
             return 1;

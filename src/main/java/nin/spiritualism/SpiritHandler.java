@@ -15,10 +15,18 @@ public class SpiritHandler implements INBTSerializable<CompoundTag> {
     public int soulUsage = SpiritualismConfig.defaultSoulUsage;
     public boolean refusePossession = false;
     public GameType previousGameType = GameType.DEFAULT_MODE;
-    public BlockPos previousRespawnPosition = BlockPos.ZERO;
+    private BlockPos previousRespawnPosition = BlockPos.ZERO;
     public ResourceKey<Level> previousRespawnDimension = Level.OVERWORLD;
 
     SpiritHandler() {
+    }
+
+    public BlockPos getPreviousRespawnPosition(){
+        return previousRespawnPosition != BlockPos.ZERO ? previousRespawnPosition : null;
+    }
+
+    public void setPreviousRespawnPosition(BlockPos pos){
+        previousRespawnPosition = pos != null ? pos : BlockPos.ZERO;
     }
 
     public boolean isLiving(){
