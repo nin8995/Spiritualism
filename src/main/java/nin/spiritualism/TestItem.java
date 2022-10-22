@@ -16,10 +16,10 @@ public class TestItem extends Item {
     @Override
     public InteractionResultHolder<ItemStack> use(Level p_41432_, Player p, InteractionHand p_41434_) {
         if (p instanceof ServerPlayer sp)
-            sp.getCapability(Spiritualism.SPIRIT).ifPresent(sh -> {
-                sh.soulPower -= 1;
+            Spiritualism.getSpirit(sp).ifPresent(sh -> {
+                sh.soulPower += sp.isCrouching() ? -1 : 1;
                 System.out.println(sh.soulPower);
-                System.out.println(sh.isSpirit() ? "spirit" : sh.isUndead() ? "undead" : "living");
+                System.out.println(sh.isLiving() ? "living" : sp.isSpectator() ? "spirit" : "undead");
             });
         return super.use(p_41432_, p, p_41434_);
     }

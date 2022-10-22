@@ -17,18 +17,19 @@ public class SpiritHandler implements INBTSerializable<CompoundTag> {
     public GameType previousGameType = GameType.DEFAULT_MODE;
     public BlockPos previousRespawnPosition = BlockPos.ZERO;
     public ResourceKey<Level> previousRespawnDimension = Level.OVERWORLD;
-    public ServerPlayer pl;
 
-    SpiritHandler(ServerPlayer pl) {
-        this.pl = pl;
+    SpiritHandler() {
     }
 
-    public boolean isUndead() {
-        return soulPower <= 0 && !pl.isSpectator();
+    public boolean isLiving(){
+        return soulPower > 0;
+    }
+    public boolean isDead(){
+        return soulPower <= 0;
     }
 
-    public boolean isSpirit() {
-        return soulPower <= 0 && pl.isSpectator();
+    public int getActualUsage(){
+        return Math.min(soulPower, soulUsage);
     }
 
     @Override
