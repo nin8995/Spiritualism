@@ -16,7 +16,6 @@ public class NetworkHandler {
 
     public static void init() {
         register(SpiritHandler.class, SpiritHandler::new);
-        register(FlySpeedPacket.class, FlySpeedPacket::new);
     }
 
     public static <MSG extends IPacket> void register(Class<MSG> c, Function<FriendlyByteBuf, MSG> decoder) {
