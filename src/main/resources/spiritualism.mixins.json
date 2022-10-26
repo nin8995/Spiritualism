@@ -8,6 +8,7 @@
   ],
   "client": [
     "MixinMouseHandler",
+    "MixinPlayerMenuItem",
     "MixinTeleportToPlayerMenuCategory"
   ],
   "injectors": {

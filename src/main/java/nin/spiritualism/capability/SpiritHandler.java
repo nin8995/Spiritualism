@@ -103,7 +103,7 @@ public class SpiritHandler implements INBTSerializable<CompoundTag> {
         previousRespawnPosition = new BlockPos(pos.getInt("x"), pos.getInt("y"), pos.getInt("z"));
     }
 
-    private static Map<UUID, SpiritHandler> playersSynced = new HashMap<>();
+    private static final Map<UUID, SpiritHandler> playersSynced = new HashMap<>();
 
     public static LazyOptional<SpiritHandler> getFromServer(ServerPlayer p) {
         return p.getCapability(SPIRIT);
@@ -169,9 +169,14 @@ public class SpiritHandler implements INBTSerializable<CompoundTag> {
                         sh.isDead = true;
                         sh.previousGameType = sp.gameMode.getGameModeForPlayer();
                         sh.previousFlyingSpeed = sp.getAbilities().getFlyingSpeed();
+                        sp.getAbilities().setFlyingSpeed(0F);
                         sp.setGameMode(GameType.SPECTATOR);
+                    }
+                    if (sh.isDead) {
                         sp.getAbilities().setFlyingSpeed(0F);
                         sp.onUpdateAbilities();
+                        //これがないと死ぬと動けちゃう
+                        //おそらくスペクテーターで死ぬと移動速度リセットされるせい
                     }
                     sh.syncToClients(sp);
                 });
