@@ -3,17 +3,14 @@ package nin.spiritualism;
 import com.google.common.base.CaseFormat;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
-import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
-import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockBehaviour;
@@ -26,8 +23,6 @@ import net.minecraftforge.common.util.INBTSerializable;
 import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.RegisterCommandsEvent;
-import net.minecraftforge.event.entity.living.LivingDeathEvent;
-import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -63,6 +58,7 @@ public class Spiritualism {
         ITEMS.register(modEventBus);
 
         MinecraftForge.EVENT_BUS.register(this);
+        MinecraftForge.EVENT_BUS.register(new SpiritHandler.SpiritEventHandler());
     }
 
     private void commonSetup(final FMLCommonSetupEvent event) {
@@ -80,17 +76,19 @@ public class Spiritualism {
         }
     }
 
-    static AttachCapabilitiesEvent<Entity> attachCapabilitiesEvent;
-
     @SubscribeEvent
-    public void onAttachingCapabilities(final AttachCapabilitiesEvent<Entity> event) {
-        attachCapabilitiesEvent = event;
-        if (event.getObject() instanceof Player)
-            addCapacity(SpiritHandler.SPIRIT, new SpiritHandler());
+    public void registerCaps(RegisterCapabilitiesEvent event) {
+        event.register(SpiritHandler.class);
     }
 
-    public static <T extends INBTSerializable<CompoundTag>> void addCapacity(Capability<T> cap, T backend) {
-        attachCapabilitiesEvent.addCapability(new ResourceLocation(Spiritualism.MODID, CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, backend.getClass().getSimpleName())), createProvider(cap, backend));
+    @SubscribeEvent
+    public void attachCapabilities(final AttachCapabilitiesEvent<Entity> event) {
+        if (event.getObject() instanceof ServerPlayer)
+            addCapability(event, SpiritHandler.SPIRIT, new SpiritHandler());
+    }
+
+    public static <T extends INBTSerializable<CompoundTag>> void addCapability(AttachCapabilitiesEvent<Entity> event, Capability<T> cap, T backend) {
+        event.addCapability(new ResourceLocation(Spiritualism.MODID, CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, backend.getClass().getSimpleName())), createProvider(cap, backend));
     }
 
     public static ICapabilitySerializable<CompoundTag> createProvider(Capability<? extends INBTSerializable<CompoundTag>> cap, INBTSerializable<CompoundTag> backend) {
@@ -119,52 +117,5 @@ public class Spiritualism {
     public void onRegisterCommandEvent(RegisterCommandsEvent event) {
         var dispatcher = event.getDispatcher();
         dispatcher.register(ResurrectCommand.register());
-    }
-
-    @SubscribeEvent
-    public void registerCaps(RegisterCapabilitiesEvent event) {
-        event.register(SpiritHandler.class);
-    }
-
-    @SubscribeEvent
-    public void onPlayerDeath(LivingDeathEvent e) {
-        if (e.getEntity() instanceof ServerPlayer sp) {
-            SpiritHandler.get(sp).ifPresent(sh -> {
-                sh.soulPower -= sh.getActualUsage();
-                if (!sh.isLiving() && !sh.isDead) {
-                    sh.previousRespawnDimension = sp.getRespawnDimension();
-                    sh.setPreviousRespawnPosition(sp.getRespawnPosition());
-                    sp.setRespawnPosition(sp.getLevel().dimension(), new BlockPos(sp.position()), 0, true, false);
-                }
-                sh.syncToClient(sp);
-            });
-        }
-    }
-
-    @SubscribeEvent
-    public void onPlayerRespawn(PlayerEvent.PlayerRespawnEvent e) {
-        if (e.getEntity() instanceof ServerPlayer sp) {
-            SpiritHandler.get(sp).ifPresent(sh -> {
-                if (!sh.isLiving() && !sh.isDead) {
-                    sh.previousGameType = sp.gameMode.getGameModeForPlayer();
-                    sh.isDead = true;
-                    sh.previousFlyingSpeed = sp.getAbilities().getFlyingSpeed();
-                    sp.setGameMode(GameType.SPECTATOR);
-                    sp.getAbilities().setFlyingSpeed(0F);
-                    sp.onUpdateAbilities();
-                }
-                sh.syncToClient(sp);
-            });
-        }
-    }
-
-    @SubscribeEvent
-    public void onPlayerClone(PlayerEvent.Clone e) {
-        SpiritHandler.get(e.getOriginal()).ifPresent(op ->
-                e.getEntity().getCapability(SpiritHandler.SPIRIT).ifPresent(np -> {
-                    np.deserializeNBT(op.serializeNBT());
-                    SpiritHandler.players.put(e.getEntity().getUUID(), LazyOptional.of(() -> np));
-                })
-        );
     }
 }

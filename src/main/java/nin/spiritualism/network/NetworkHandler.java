@@ -15,7 +15,7 @@ public class NetworkHandler {
     private static int i = 0;
 
     public static void init() {
-        register(SpiritHandler.class, SpiritHandler::new);
+        register(SpiritHandler.SpiritPacket.class, SpiritHandler.SpiritPacket::new);
     }
 
     public static <MSG extends IPacket> void register(Class<MSG> c, Function<FriendlyByteBuf, MSG> decoder) {

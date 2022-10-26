@@ -7,7 +7,8 @@
   "mixins": [
   ],
   "client": [
-    "MixinAbilities"
+    "MixinMouseHandler",
+    "MixinTeleportToPlayerMenuCategory"
   ],
   "injectors": {
     "defaultRequire": 1

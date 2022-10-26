@@ -14,14 +14,17 @@ public class TestItem extends Item {
         super(p_41383_);
     }
 
+    public static int i;
+
     @Override
-    public InteractionResultHolder<ItemStack> use(Level p_41432_, Player p, InteractionHand p_41434_) {
+    public InteractionResultHolder<ItemStack> use(Level level, Player p, InteractionHand p_41434_) {
         if (p instanceof ServerPlayer sp)
-            SpiritHandler.get(sp).ifPresent(sh -> {
+            SpiritHandler.getFromServer(sp).ifPresent(sh -> {
                 sh.soulPower += sp.isCrouching() ? -1 : 1;
                 System.out.println(sh.soulPower);
-                System.out.println(!sh.isDead ? "living" : sh.isSpirit(p) ? "spirit" : "undead");
+                System.out.println(sh.isLiving() ? "living" : sh.isSpirit(p) ? "spirit" : "undead");
+                sh.syncToClients(sp);
             });
-        return super.use(p_41432_, p, p_41434_);
+        return super.use(level, p, p_41434_);
     }
 }
