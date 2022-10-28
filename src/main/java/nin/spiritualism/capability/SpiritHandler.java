@@ -105,7 +105,7 @@ public class SpiritHandler implements INBTSerializable<CompoundTag> {
 
     private static final Map<UUID, SpiritHandler> playersSynced = new HashMap<>();
 
-    public static LazyOptional<SpiritHandler> getFromServer(ServerPlayer p) {
+    public static LazyOptional<SpiritHandler> getFromServer(Player p) {
         return p.getCapability(SPIRIT);
     }
 

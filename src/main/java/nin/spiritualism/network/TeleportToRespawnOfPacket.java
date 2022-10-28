@@ -8,21 +8,14 @@ import nin.spiritualism.utils.PlayerUtils;
 import java.util.UUID;
 import java.util.function.Supplier;
 
-public class TeleportToRespawnOfPacket implements IPacket {
-
-    private final UUID uuid;
+public class TeleportToRespawnOfPacket extends UUIDPacket {
 
     public TeleportToRespawnOfPacket(UUID uuid) {
-        this.uuid = uuid;
+        super(uuid);
     }
 
     public TeleportToRespawnOfPacket(FriendlyByteBuf buf) {
-        uuid = buf.readUUID();
-    }
-
-    @Override
-    public void encode(FriendlyByteBuf buf) {
-        buf.writeUUID(uuid);
+        super(buf);
     }
 
     @Override

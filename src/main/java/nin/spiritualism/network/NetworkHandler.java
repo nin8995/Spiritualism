@@ -17,6 +17,9 @@ public class NetworkHandler {
     public static void init() {
         register(SpiritHandler.SpiritPacket.class, SpiritHandler.SpiritPacket::new);
         register(TeleportToRespawnOfPacket.class, TeleportToRespawnOfPacket::new);
+        register(SetCameraOfPacket.class, SetCameraOfPacket::new);
+        register(SpiritPossessedPacket.class, SpiritPossessedPacket::new);
+        register(SpiritLeftPacket.class, SpiritLeftPacket::new);
     }
 
     public static <MSG extends IPacket> void register(Class<MSG> c, Function<FriendlyByteBuf, MSG> decoder) {

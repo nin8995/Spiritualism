@@ -33,6 +33,7 @@ import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 import nin.spiritualism.capability.SpiritHandler;
+import nin.spiritualism.command.RefusePossessionCommand;
 import nin.spiritualism.command.ResurrectCommand;
 import nin.spiritualism.network.NetworkHandler;
 import org.jetbrains.annotations.NotNull;
@@ -117,5 +118,6 @@ public class Spiritualism {
     public void onRegisterCommandEvent(RegisterCommandsEvent event) {
         var dispatcher = event.getDispatcher();
         dispatcher.register(ResurrectCommand.register());
+        dispatcher.register(RefusePossessionCommand.register());
     }
 }
