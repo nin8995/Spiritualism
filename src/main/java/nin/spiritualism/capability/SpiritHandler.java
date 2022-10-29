@@ -15,6 +15,7 @@ import net.minecraftforge.common.capabilities.CapabilityManager;
 import net.minecraftforge.common.capabilities.CapabilityToken;
 import net.minecraftforge.common.util.INBTSerializable;
 import net.minecraftforge.common.util.LazyOptional;
+import net.minecraftforge.common.util.NonNullConsumer;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -30,23 +31,39 @@ import java.util.function.Supplier;
 public class SpiritHandler implements INBTSerializable<CompoundTag> {
     public static final Capability<SpiritHandler> SPIRIT = CapabilityManager.get(new CapabilityToken<>() {
     });
-
-    public SpiritHandler() {
-
-    }
-
-    public SpiritHandler(CompoundTag nbt) {
-        deserializeNBT(nbt);
-    }
-
+    private static final Map<UUID, SpiritHandler> playersSynced = new HashMap<>();
     public int soulPower = SpiritualismConfig.soulDivision;
-    private int soulUsage = SpiritualismConfig.defaultSoulUsage;
+    public int soulUsage = SpiritualismConfig.defaultSoulUsage;
     public boolean refusePossession = false;
     public GameType previousGameType = GameType.DEFAULT_MODE;
     public boolean isDead = false;
     public float previousFlyingSpeed = 0.05F;
     public ResourceKey<Level> previousRespawnDimension = Level.OVERWORLD;
     public BlockPos previousRespawnPosition = BlockPos.ZERO;
+
+    public SpiritHandler() {
+    }
+
+    public SpiritHandler(CompoundTag nbt) {
+        deserializeNBT(nbt);
+    }
+
+    public static LazyOptional<SpiritHandler> getFromServer(Player p) {
+        return p.getCapability(SPIRIT);
+    }
+
+    public static SpiritHandler getFromClient(UUID p) {
+        return playersSynced.get(p);
+    }
+
+    public static void readOnServer(ServerPlayer p, NonNullConsumer<SpiritHandler> consumer) {
+        getFromServer(p).ifPresent(consumer);
+    }
+
+    public static void edit(ServerPlayer spMe, NonNullConsumer<SpiritHandler> consumer) {
+        readOnServer(spMe, consumer);
+        getFromServer(spMe).ifPresent(sh -> sh.syncToClients(spMe));
+    }
 
     public BlockPos getPreviousRespawnPosition() {
         return previousRespawnPosition != BlockPos.ZERO ? previousRespawnPosition : null;
@@ -103,22 +120,12 @@ public class SpiritHandler implements INBTSerializable<CompoundTag> {
         previousRespawnPosition = new BlockPos(pos.getInt("x"), pos.getInt("y"), pos.getInt("z"));
     }
 
-    private static final Map<UUID, SpiritHandler> playersSynced = new HashMap<>();
-
-    public static LazyOptional<SpiritHandler> getFromServer(Player p) {
-        return p.getCapability(SPIRIT);
-    }
-
-    public static SpiritHandler getFromClient(UUID p) {
-        return playersSynced.get(p);
-    }
-
     public void syncToClients(ServerPlayer spMe) {
         new SpiritPacket(spMe.getUUID(), this).toClients(spMe.getServer().getPlayerList());
     }
 
     public void syncFromServer(ServerPlayer spMe) {
-        spMe.getServer().getPlayerList().getPlayers().forEach(sp -> SpiritHandler.getFromServer(sp).ifPresent(sh -> new SpiritPacket(sp.getUUID(), sh).toClient(spMe)));
+        spMe.getServer().getPlayerList().getPlayers().forEach(sp -> SpiritHandler.readOnServer(sp, sh -> new SpiritPacket(sp.getUUID(), sh).toClient(spMe)));
     }
 
     public static class SpiritPacket extends AbstractCapabilityPacket {
@@ -134,7 +141,7 @@ public class SpiritHandler implements INBTSerializable<CompoundTag> {
         public void handle(Supplier<NetworkEvent.Context> context) {
             switch (context.get().getDirection()) {
                 case PLAY_TO_SERVER ->
-                        context.get().enqueueWork(() -> SpiritHandler.getFromServer(context.get().getSender()).ifPresent(sh -> sh.deserializeNBT(this.nbt)));
+                        context.get().enqueueWork(() -> SpiritHandler.readOnServer(context.get().getSender(), sh -> sh.deserializeNBT(this.nbt)));
                 case PLAY_TO_CLIENT ->
                         context.get().enqueueWork(() -> SpiritHandler.playersSynced.put(uuid, new SpiritHandler(nbt)));
             }
@@ -148,14 +155,13 @@ public class SpiritHandler implements INBTSerializable<CompoundTag> {
         @SubscribeEvent
         public void onPlayerDeath(LivingDeathEvent e) {
             if (e.getEntity() instanceof ServerPlayer sp) {
-                SpiritHandler.getFromServer(sp).ifPresent(sh -> {
+                SpiritHandler.edit(sp, sh -> {
                     sh.soulPower -= sh.getActualUsage();
                     if (!sh.isLiving() && !sh.isDead) {
                         sh.previousRespawnDimension = sp.getRespawnDimension();
                         sh.setPreviousRespawnPosition(sp.getRespawnPosition());
                         sp.setRespawnPosition(sp.getLevel().dimension(), new BlockPos(sp.position()), 0, true, false);
                     }
-                    sh.syncToClients(sp);
                     players.put(sp.getUUID(), sh);
                 });
             }
@@ -164,7 +170,7 @@ public class SpiritHandler implements INBTSerializable<CompoundTag> {
         @SubscribeEvent
         public void onPlayerRespawn(PlayerEvent.PlayerRespawnEvent e) {
             if (e.getEntity() instanceof ServerPlayer sp) {
-                SpiritHandler.getFromServer(sp).ifPresent(sh -> {
+                SpiritHandler.edit(sp, sh -> {
                     if (!sh.isLiving() && !sh.isDead) {
                         sh.isDead = true;
                         sh.previousGameType = sp.gameMode.getGameModeForPlayer();
@@ -178,7 +184,6 @@ public class SpiritHandler implements INBTSerializable<CompoundTag> {
                         //これがないと死ぬと動けちゃう
                         //おそらくスペクテーターで死ぬと移動速度リセットされるせい
                     }
-                    sh.syncToClients(sp);
                 });
             }
         }
@@ -188,7 +193,7 @@ public class SpiritHandler implements INBTSerializable<CompoundTag> {
             if (e.isWasDeath() && e.getOriginal() instanceof ServerPlayer osp) {
                 var osh = players.get(osp.getUUID());
                 if (e.getEntity() instanceof ServerPlayer nsp) {
-                    SpiritHandler.getFromServer(nsp).ifPresent(nsh -> nsh.deserializeNBT(osh.serializeNBT()));
+                    SpiritHandler.readOnServer(nsp, nsh -> nsh.deserializeNBT(osh.serializeNBT()));
                 }
             }
         }
@@ -196,7 +201,7 @@ public class SpiritHandler implements INBTSerializable<CompoundTag> {
         @SubscribeEvent
         public void onPlayerJoin(PlayerEvent.PlayerLoggedInEvent e) {
             if (e.getEntity() instanceof ServerPlayer sp) {
-                SpiritHandler.getFromServer(sp).ifPresent(sh -> {
+                SpiritHandler.readOnServer(sp, sh -> {
                     sh.syncToClients(sp);
                     sh.syncFromServer(sp);
                     players.put(sp.getUUID(), sh);

@@ -17,11 +17,11 @@ public class PlayerUtils {
 
     public static void teleportToRespawn(ServerPlayer spMe, ServerPlayer sp) {
         if (sp.isRespawnForced()) {
-            PlayerUtils.teleport(spMe, sp.getRespawnDimension(), sp.getRespawnPosition());
+            teleport(spMe, sp.getRespawnDimension(), sp.getRespawnPosition());
         } else {
             Optional<Vec3> ovec = sp.getRespawnPosition() != null ? Player.findRespawnPositionAndUseSpawnBlock(sp.server.getLevel(sp.getRespawnDimension()), sp.getRespawnPosition(), 0, false, false) : Optional.empty();
-            var pos = ovec.map(BlockPos::new).orElseGet(() -> sp.server.overworld().getSharedSpawnPos());
-            PlayerUtils.teleport(spMe, ovec.isPresent() ? sp.getRespawnDimension() : Level.OVERWORLD, pos);
+            var pos = ovec.map(BlockPos::new).orElse(sp.server.overworld().getSharedSpawnPos());
+            teleport(spMe, ovec.isPresent() ? sp.getRespawnDimension() : Level.OVERWORLD, pos);
         }
     }
 
@@ -30,6 +30,8 @@ public class PlayerUtils {
     }
 
     public static void teleport(ServerPlayer p, ResourceKey<Level> dim, BlockPos pos) {
+        var exp = p.experienceLevel;
         p.teleportTo(p.getServer().getLevel(dim), pos.getX(), pos.getY(), pos.getZ(), 0, 0);
+        p.setExperienceLevels(exp);
     }
 }

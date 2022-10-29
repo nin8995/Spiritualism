@@ -1,6 +1,7 @@
 package nin.spiritualism;
 
 import com.google.common.base.CaseFormat;
+import com.google.common.base.Supplier;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.Direction;
@@ -23,6 +24,7 @@ import net.minecraftforge.common.util.INBTSerializable;
 import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.RegisterCommandsEvent;
+import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -33,23 +35,29 @@ import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 import nin.spiritualism.capability.SpiritHandler;
+import nin.spiritualism.command.AbstractCommand;
 import nin.spiritualism.command.RefusePossessionCommand;
 import nin.spiritualism.command.ResurrectCommand;
+import nin.spiritualism.command.SoulUsageCommand;
 import nin.spiritualism.network.NetworkHandler;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.List;
 
 @Mod(Spiritualism.MODID)
 public class Spiritualism {
     public static final String MODID = "spiritualism";
     public static final Logger LOGGER = LogUtils.getLogger();
     public static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(ForgeRegistries.BLOCKS, MODID);
-    public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, MODID);
     public static final RegistryObject<Block> EXAMPLE_BLOCK = BLOCKS.register("example_block", () -> new Block(BlockBehaviour.Properties.of(Material.STONE)));
+    public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, MODID);
     public static final RegistryObject<Item> EXAMPLE_BLOCK_ITEM = ITEMS.register("example_block", () -> new BlockItem(EXAMPLE_BLOCK.get(), new Item.Properties().tab(CreativeModeTab.TAB_BUILDING_BLOCKS)));
     public static final RegistryObject<Item> EXAMPLE_ITEM = ITEMS.register("example_item", () -> new TestItem(new Item.Properties().tab(CreativeModeTab.TAB_BUILDING_BLOCKS)));
+    private static final List<TickingFunction> tickingFunctions = new ArrayList<>();
+    private static final List<TickingFunction> deposedTickingFunctions = new ArrayList<>();
 
     public Spiritualism() {
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
@@ -60,32 +68,6 @@ public class Spiritualism {
 
         MinecraftForge.EVENT_BUS.register(this);
         MinecraftForge.EVENT_BUS.register(new SpiritHandler.SpiritEventHandler());
-    }
-
-    private void commonSetup(final FMLCommonSetupEvent event) {
-        LOGGER.info("HELLO FROM COMMON SETUP");
-        LOGGER.info("DIRT BLOCK >> {}", ForgeRegistries.BLOCKS.getKey(Blocks.DIRT));
-        event.enqueueWork(NetworkHandler::init);
-    }
-
-    @Mod.EventBusSubscriber(modid = Spiritualism.MODID, bus = Mod.EventBusSubscriber.Bus.MOD)
-    public static class ClientModEvents {
-        @SubscribeEvent
-        public static void onClientSetup(FMLClientSetupEvent event) {
-            Spiritualism.LOGGER.info("HELLO FROM CLIENT SETUP");
-            Spiritualism.LOGGER.info("MINECRAFT NAME >> {}", Minecraft.getInstance().getUser().getName());
-        }
-    }
-
-    @SubscribeEvent
-    public void registerCaps(RegisterCapabilitiesEvent event) {
-        event.register(SpiritHandler.class);
-    }
-
-    @SubscribeEvent
-    public void attachCapabilities(final AttachCapabilitiesEvent<Entity> event) {
-        if (event.getObject() instanceof ServerPlayer)
-            addCapability(event, SpiritHandler.SPIRIT, new SpiritHandler());
     }
 
     public static <T extends INBTSerializable<CompoundTag>> void addCapability(AttachCapabilitiesEvent<Entity> event, Capability<T> cap, T backend) {
@@ -114,10 +96,80 @@ public class Spiritualism {
         };
     }
 
+    private void commonSetup(final FMLCommonSetupEvent event) {
+        LOGGER.info("HELLO FROM COMMON SETUP");
+        LOGGER.info("DIRT BLOCK >> {}", ForgeRegistries.BLOCKS.getKey(Blocks.DIRT));
+        event.enqueueWork(NetworkHandler::init);
+    }
+
+    @SubscribeEvent
+    public void registerCaps(RegisterCapabilitiesEvent event) {
+        event.register(SpiritHandler.class);
+    }
+
+    @SubscribeEvent
+    public void attachCapabilities(final AttachCapabilitiesEvent<Entity> event) {
+        if (event.getObject() instanceof ServerPlayer)
+            addCapability(event, SpiritHandler.SPIRIT, new SpiritHandler());
+    }
+
     @SubscribeEvent
     public void onRegisterCommandEvent(RegisterCommandsEvent event) {
         var dispatcher = event.getDispatcher();
-        dispatcher.register(ResurrectCommand.register());
-        dispatcher.register(RefusePossessionCommand.register());
+        var commands = new ArrayList<Supplier<? extends AbstractCommand>>();
+        commands.add(ResurrectCommand::new);
+        commands.add(RefusePossessionCommand::new);
+        commands.add(SoulUsageCommand::new);
+        commands.forEach(c -> dispatcher.register(c.get().register()));
+    }
+
+    @SubscribeEvent
+    public void onServerTick(TickEvent.ServerTickEvent e) {
+        if (e.phase == TickEvent.Phase.START) {
+            tickingFunctions.forEach(TickingFunction::tick);
+            tickingFunctions.removeAll(deposedTickingFunctions);
+            deposedTickingFunctions.clear();
+        }
+    }
+
+    @Mod.EventBusSubscriber(modid = Spiritualism.MODID, bus = Mod.EventBusSubscriber.Bus.MOD)
+    public static class ClientModEvents {
+        @SubscribeEvent
+        public static void onClientSetup(FMLClientSetupEvent event) {
+            Spiritualism.LOGGER.info("HELLO FROM CLIENT SETUP");
+            Spiritualism.LOGGER.info("MINECRAFT NAME >> {}", Minecraft.getInstance().getUser().getName());
+        }
+    }
+
+    public static abstract class TickingFunction {
+        protected int currentTicks;
+        protected int requiredTicks;
+
+        public TickingFunction(int requiredTicks) {
+            this.requiredTicks = requiredTicks;
+        }
+
+        public void start() {
+            tickingFunctions.add(this);
+        }
+
+        public void tick() {
+            if (!isValid()) {
+                depose();
+            }
+            currentTicks++;
+            if (currentTicks >= requiredTicks) {
+                function();
+                depose();
+            }
+        }
+
+        public void depose() {
+            deposedTickingFunctions.add(this);
+        }
+
+        public abstract boolean isValid();
+
+        public abstract void function();
     }
 }

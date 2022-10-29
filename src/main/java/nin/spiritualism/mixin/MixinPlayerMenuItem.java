@@ -29,7 +29,7 @@ public class MixinPlayerMenuItem {
         if (!shMe.isDead)
             return;
         if (sh.refusePossession) {
-            ChatUtils.showRefused(profile.getName());
+            ChatUtils.showComponent(ChatUtils.refused(profile.getName()));
             ci.cancel();
             return;
         }

@@ -12,7 +12,7 @@ public class MixinServerPlayer {
 
     @Redirect(method = "attack", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerPlayer;setCamera(Lnet/minecraft/world/entity/Entity;)V"))
     private void injected(ServerPlayer sp, Entity e) {
-        SpiritHandler.getFromServer(sp).ifPresent(sh -> {
+        SpiritHandler.readOnServer(sp, sh -> {
             if (!sh.isDead)
                 sp.setCamera(e);
         });
