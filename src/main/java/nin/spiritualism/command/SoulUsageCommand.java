@@ -11,7 +11,7 @@ import nin.spiritualism.Spiritualism;
 import nin.spiritualism.SpiritualismConfig;
 import nin.spiritualism.capability.SpiritHandler;
 import nin.spiritualism.network.ComponentPacket;
-import nin.spiritualism.utils.ChatUtils;
+import nin.spiritualism.util.ChatUtils;
 
 public class SoulUsageCommand extends AbstractCommand {
 
@@ -23,7 +23,7 @@ public class SoulUsageCommand extends AbstractCommand {
 
     private static int showSoulUsage(CommandContext<CommandSourceStack> context) {
         return executable(context, sp -> SpiritHandler.readOnServer(sp, sh ->
-                new ComponentPacket(ChatUtils.soulUsage(sh.getActualUsage())).toClient(sp)));
+                new ComponentPacket(ChatUtils.soulUsage(sh.getUsingSouls())).toClient(sp)));
     }
 
     private static int setSoulUsage(CommandContext<CommandSourceStack> context) {

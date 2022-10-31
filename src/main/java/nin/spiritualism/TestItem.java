@@ -23,7 +23,7 @@ public class TestItem extends Item {
             SpiritHandler.edit(sp, sh -> {
                 sh.soulPower += sp.isCrouching() ? -1 : 1;
                 var status = sh.isLiving() ? "living" : sh.isSpirit(p) ? "spirit" : "undead";
-                new ComponentPacket(sh.soulPower + "\n" + sh.getActualUsage() + "/" + sh.soulUsage + "\n" + sh.refusePossession + "\n" + status).toClient(sp);
+                new ComponentPacket(sh.soulPower + "\n" + sh.getUsingSouls() + "/" + sh.soulUsage + "\n" + sh.refusePossession + "\n" + status).toClient(sp);
             });
         return super.use(level, p, p_41434_);
     }

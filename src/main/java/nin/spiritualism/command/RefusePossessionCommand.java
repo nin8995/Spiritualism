@@ -7,7 +7,7 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import nin.spiritualism.capability.SpiritHandler;
 import nin.spiritualism.network.ComponentPacket;
-import nin.spiritualism.utils.ChatUtils;
+import nin.spiritualism.util.ChatUtils;
 
 public class RefusePossessionCommand extends AbstractCommand {
 

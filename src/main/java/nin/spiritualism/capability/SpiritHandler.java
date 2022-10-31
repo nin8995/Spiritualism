@@ -21,6 +21,7 @@ import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.network.NetworkEvent;
 import nin.spiritualism.SpiritualismConfig;
+import nin.spiritualism.ability.SpiritAbility;
 import nin.spiritualism.network.AbstractCapabilityPacket;
 
 import java.util.HashMap;
@@ -40,6 +41,7 @@ public class SpiritHandler implements INBTSerializable<CompoundTag> {
     public float previousFlyingSpeed = 0.05F;
     public ResourceKey<Level> previousRespawnDimension = Level.OVERWORLD;
     public BlockPos previousRespawnPosition = BlockPos.ZERO;
+    public String sa = SpiritAbility.SPECTRAL_REFLECTION.getId();
 
     public SpiritHandler() {
     }
@@ -61,7 +63,21 @@ public class SpiritHandler implements INBTSerializable<CompoundTag> {
     }
 
     public static void edit(ServerPlayer spMe, NonNullConsumer<SpiritHandler> consumer) {
-        readOnServer(spMe, consumer);
+        /*AtomicInteger pau = new AtomicInteger();
+        AtomicInteger au = new AtomicInteger();
+        AtomicReference<String> sa = new AtomicReference<>("");
+        readOnServer(spMe, sh -> pau.set(sh.getActualUsage()));*/
+        readOnServer(spMe, consumer);/*
+        readOnServer(spMe, sh -> {
+            au.set(sh.getActualUsage());
+            sa.set(sh.sa);
+        });
+        if(pau.get() != au.get() && sa.get().equals(SpiritAbility.SPECTRAL_REFLECTION.getId())) {
+            var hr = spMe.getHealth()/spMe.getMaxHealth();
+            spMe.getAttribute(Attributes.MAX_HEALTH).removeModifier(SpectralReflection.MODIFIER);
+            spMe.getAttribute(Attributes.MAX_HEALTH).addTransientModifier(new AttributeModifier(SpectralReflection.MODIFIER, "Horse armor bonus", (au.get() - 1D) / SpiritualismConfig.defaultSoulUsage, AttributeModifier.Operation.MULTIPLY_TOTAL));
+            spMe.setHealth(hr * spMe.getMaxHealth());
+        }*/
         getFromServer(spMe).ifPresent(sh -> sh.syncToClients(spMe));
     }
 
@@ -85,8 +101,24 @@ public class SpiritHandler implements INBTSerializable<CompoundTag> {
         return isDead && p == GameType.SPECTATOR;
     }
 
-    public int getActualUsage() {
+    public int getUsingSouls() {
         return Math.min(soulPower, soulUsage);
+    }
+
+    public boolean hasExtraSouls() {
+        return getUsingSouls() > SpiritualismConfig.defaultSoulUsage;
+    }
+
+    public int getExtraSouls() {
+        return getUsingSouls() < SpiritualismConfig.defaultSoulUsage ? getUsingSouls() : getUsingSouls() - SpiritualismConfig.defaultSoulUsage;
+    }
+
+    public boolean isFullPower() {
+        return getUsingSouls() == SpiritualismConfig.soulDivision;
+    }
+
+    public float getSoulRate() {
+        return (float) getUsingSouls() / SpiritualismConfig.soulDivision;
     }
 
     @Override
@@ -104,6 +136,7 @@ public class SpiritHandler implements INBTSerializable<CompoundTag> {
         pos.putInt("y", previousRespawnPosition.getY());
         pos.putInt("z", previousRespawnPosition.getZ());
         nbt.put("previousRespawnPosition", pos);
+        nbt.putString("spiritAbility", sa);
         return nbt;
     }
 
@@ -118,6 +151,7 @@ public class SpiritHandler implements INBTSerializable<CompoundTag> {
         previousRespawnDimension = ResourceKey.create(Registry.DIMENSION_REGISTRY, new ResourceLocation(nbt.getString("previousRespawnDimension")));
         var pos = (CompoundTag) nbt.get("previousRespawnPosition");
         previousRespawnPosition = new BlockPos(pos.getInt("x"), pos.getInt("y"), pos.getInt("z"));
+        sa = nbt.getString("spiritAbility");
     }
 
     public void syncToClients(ServerPlayer spMe) {
@@ -156,7 +190,7 @@ public class SpiritHandler implements INBTSerializable<CompoundTag> {
         public void onPlayerDeath(LivingDeathEvent e) {
             if (e.getEntity() instanceof ServerPlayer sp) {
                 SpiritHandler.edit(sp, sh -> {
-                    sh.soulPower -= sh.getActualUsage();
+                    sh.soulPower -= sh.getUsingSouls();
                     if (!sh.isLiving() && !sh.isDead) {
                         sh.previousRespawnDimension = sp.getRespawnDimension();
                         sh.setPreviousRespawnPosition(sp.getRespawnPosition());

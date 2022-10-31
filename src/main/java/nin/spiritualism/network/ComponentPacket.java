@@ -3,7 +3,7 @@ package nin.spiritualism.network;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraftforge.network.NetworkEvent;
-import nin.spiritualism.utils.ChatUtils;
+import nin.spiritualism.util.ChatUtils;
 
 import java.util.function.Supplier;
 

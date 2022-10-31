@@ -7,7 +7,7 @@ import net.minecraft.client.gui.spectator.SpectatorMenu;
 import nin.spiritualism.capability.SpiritHandler;
 import nin.spiritualism.network.SetCameraOfPacket;
 import nin.spiritualism.network.TeleportToRespawnOfPacket;
-import nin.spiritualism.utils.ChatUtils;
+import nin.spiritualism.util.ChatUtils;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;

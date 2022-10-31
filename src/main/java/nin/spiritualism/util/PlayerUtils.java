@@ -1,4 +1,4 @@
-package nin.spiritualism.utils;
+package nin.spiritualism.util;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;

@@ -4,7 +4,7 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.network.NetworkDirection;
 import net.minecraftforge.network.NetworkEvent;
-import nin.spiritualism.utils.ChatUtils;
+import nin.spiritualism.util.ChatUtils;
 
 import java.util.UUID;
 import java.util.function.Supplier;

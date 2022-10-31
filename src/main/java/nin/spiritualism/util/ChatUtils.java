@@ -1,4 +1,4 @@
-package nin.spiritualism.utils;
+package nin.spiritualism.util;
 
 import net.minecraft.client.GuiMessageTag;
 import net.minecraft.client.Minecraft;
@@ -43,6 +43,10 @@ public class ChatUtils {
 
     public static Component refusePossession(boolean b) {
         return getSpiritComponent(b ? "憑依拒否中" : "憑依許容中");
+    }
+
+    public static Component spiritAbility(String sa) {
+        return getSpiritComponent("現在の能力：" + sa);
     }
 
     private static Component getSpiritComponent(String s) {

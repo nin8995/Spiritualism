@@ -34,11 +34,9 @@ import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
+import nin.spiritualism.ability.SpectralReflection;
 import nin.spiritualism.capability.SpiritHandler;
-import nin.spiritualism.command.AbstractCommand;
-import nin.spiritualism.command.RefusePossessionCommand;
-import nin.spiritualism.command.ResurrectCommand;
-import nin.spiritualism.command.SoulUsageCommand;
+import nin.spiritualism.command.*;
 import nin.spiritualism.network.NetworkHandler;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -68,6 +66,24 @@ public class Spiritualism {
 
         MinecraftForge.EVENT_BUS.register(this);
         MinecraftForge.EVENT_BUS.register(new SpiritHandler.SpiritEventHandler());
+        MinecraftForge.EVENT_BUS.register(new SpectralReflection());
+    }
+
+    private void commonSetup(final FMLCommonSetupEvent event) {
+        LOGGER.info("HELLO FROM COMMON SETUP");
+        LOGGER.info("DIRT BLOCK >> {}", ForgeRegistries.BLOCKS.getKey(Blocks.DIRT));
+        event.enqueueWork(NetworkHandler::init);
+    }
+
+    @SubscribeEvent
+    public void registerCaps(RegisterCapabilitiesEvent event) {
+        event.register(SpiritHandler.class);
+    }
+
+    @SubscribeEvent
+    public void attachCapabilities(final AttachCapabilitiesEvent<Entity> event) {
+        if (event.getObject() instanceof ServerPlayer)
+            addCapability(event, SpiritHandler.SPIRIT, new SpiritHandler());
     }
 
     public static <T extends INBTSerializable<CompoundTag>> void addCapability(AttachCapabilitiesEvent<Entity> event, Capability<T> cap, T backend) {
@@ -96,23 +112,6 @@ public class Spiritualism {
         };
     }
 
-    private void commonSetup(final FMLCommonSetupEvent event) {
-        LOGGER.info("HELLO FROM COMMON SETUP");
-        LOGGER.info("DIRT BLOCK >> {}", ForgeRegistries.BLOCKS.getKey(Blocks.DIRT));
-        event.enqueueWork(NetworkHandler::init);
-    }
-
-    @SubscribeEvent
-    public void registerCaps(RegisterCapabilitiesEvent event) {
-        event.register(SpiritHandler.class);
-    }
-
-    @SubscribeEvent
-    public void attachCapabilities(final AttachCapabilitiesEvent<Entity> event) {
-        if (event.getObject() instanceof ServerPlayer)
-            addCapability(event, SpiritHandler.SPIRIT, new SpiritHandler());
-    }
-
     @SubscribeEvent
     public void onRegisterCommandEvent(RegisterCommandsEvent event) {
         var dispatcher = event.getDispatcher();
@@ -120,6 +119,7 @@ public class Spiritualism {
         commands.add(ResurrectCommand::new);
         commands.add(RefusePossessionCommand::new);
         commands.add(SoulUsageCommand::new);
+        commands.add(SpiritAbilityCommand::new);
         commands.forEach(c -> dispatcher.register(c.get().register()));
     }
 

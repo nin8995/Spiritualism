@@ -6,7 +6,7 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import nin.spiritualism.SpiritualismConfig;
 import nin.spiritualism.capability.SpiritHandler;
-import nin.spiritualism.utils.PlayerUtils;
+import nin.spiritualism.util.PlayerUtils;
 
 public class ResurrectCommand extends AbstractCommand {
 
