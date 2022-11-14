@@ -3,10 +3,10 @@ package nin.spiritualism.capability;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
@@ -30,11 +30,8 @@ import java.util.UUID;
 import java.util.function.Supplier;
 
 public class SpiritHandler implements INBTSerializable<CompoundTag> {
-    public static final Capability<SpiritHandler> SPIRIT = CapabilityManager.get(new CapabilityToken<>() {
-    });
-    private static final Map<UUID, SpiritHandler> playersSynced = new HashMap<>();
-    public int soulPower = SpiritualismConfig.soulDivision;
-    public int soulUsage = SpiritualismConfig.defaultSoulUsage;
+    public int soulPower = SpiritualismConfig.soulsPerDay;
+    public int soulUsage = 1;
     public boolean refusePossession = false;
     public GameType previousGameType = GameType.DEFAULT_MODE;
     public boolean isDead = false;
@@ -42,6 +39,10 @@ public class SpiritHandler implements INBTSerializable<CompoundTag> {
     public ResourceKey<Level> previousRespawnDimension = Level.OVERWORLD;
     public BlockPos previousRespawnPosition = BlockPos.ZERO;
     public String sa = SpiritAbility.SPECTRAL_REFLECTION.getId();
+
+    public static final Capability<SpiritHandler> SPIRIT = CapabilityManager.get(new CapabilityToken<>() {
+    });
+    private static final Map<UUID, SpiritHandler> playersSynced = new HashMap<>();
 
     public SpiritHandler() {
     }
@@ -105,20 +106,24 @@ public class SpiritHandler implements INBTSerializable<CompoundTag> {
         return Math.min(soulPower, soulUsage);
     }
 
-    public boolean hasExtraSouls() {
-        return getUsingSouls() > SpiritualismConfig.defaultSoulUsage;
+    public boolean hasExtraSoul() {
+        return getUsingSouls() > 1;
     }
 
     public int getExtraSouls() {
-        return getUsingSouls() < SpiritualismConfig.defaultSoulUsage ? getUsingSouls() : getUsingSouls() - SpiritualismConfig.defaultSoulUsage;
+        return hasExtraSoul() ? getUsingSouls() - 1 : 0;
     }
 
     public boolean isFullPower() {
-        return getUsingSouls() == SpiritualismConfig.soulDivision;
+        return getUsingSouls() == SpiritualismConfig.soulsPerDay;
     }
 
-    public float getSoulRate() {
-        return (float) getUsingSouls() / SpiritualismConfig.soulDivision;
+    public float spiritRate() {
+        return 1 - (float) Mth.clamp(soulPower, 0, SpiritualismConfig.soulsPerDay) / SpiritualismConfig.soulsPerDay;
+    }
+
+    public float soulRate() {
+        return soulPower > 0 ? (float) getUsingSouls() / soulPower : 0;
     }
 
     @Override
@@ -163,12 +168,12 @@ public class SpiritHandler implements INBTSerializable<CompoundTag> {
     }
 
     public static class SpiritPacket extends AbstractCapabilityPacket {
-        public SpiritPacket(UUID uuid, SpiritHandler sh) {
-            super(uuid, sh);
+        public SpiritPacket() {
+
         }
 
-        public SpiritPacket(FriendlyByteBuf buf) {
-            super(buf);
+        public SpiritPacket(UUID uuid, SpiritHandler sh) {
+            super(uuid, sh);
         }
 
         @Override
@@ -184,7 +189,7 @@ public class SpiritHandler implements INBTSerializable<CompoundTag> {
     }
 
     public static class SpiritEventHandler {
-        public static Map<UUID, SpiritHandler> players = new HashMap<>();
+        public static Map<UUID, SpiritHandler> playersToClone = new HashMap<>();
 
         @SubscribeEvent
         public void onPlayerDeath(LivingDeathEvent e) {
@@ -196,7 +201,7 @@ public class SpiritHandler implements INBTSerializable<CompoundTag> {
                         sh.setPreviousRespawnPosition(sp.getRespawnPosition());
                         sp.setRespawnPosition(sp.getLevel().dimension(), new BlockPos(sp.position()), 0, true, false);
                     }
-                    players.put(sp.getUUID(), sh);
+                    playersToClone.put(sp.getUUID(), sh);
                 });
             }
         }
@@ -225,10 +230,11 @@ public class SpiritHandler implements INBTSerializable<CompoundTag> {
         @SubscribeEvent
         public void onPlayerClone(PlayerEvent.Clone e) {
             if (e.isWasDeath() && e.getOriginal() instanceof ServerPlayer osp) {
-                var osh = players.get(osp.getUUID());
-                if (e.getEntity() instanceof ServerPlayer nsp) {
-                    SpiritHandler.readOnServer(nsp, nsh -> nsh.deserializeNBT(osh.serializeNBT()));
-                }
+                var osh = playersToClone.get(osp.getUUID());
+                if (e.getEntity() instanceof ServerPlayer nsp)
+                    SpiritHandler.readOnServer(nsp, nsh -> {
+                        nsh.deserializeNBT(osh.serializeNBT());
+                    });
             }
         }
 
@@ -238,7 +244,7 @@ public class SpiritHandler implements INBTSerializable<CompoundTag> {
                 SpiritHandler.readOnServer(sp, sh -> {
                     sh.syncToClients(sp);
                     sh.syncFromServer(sp);
-                    players.put(sp.getUUID(), sh);
+                    playersToClone.put(sp.getUUID(), sh);
                 });
             }
         }

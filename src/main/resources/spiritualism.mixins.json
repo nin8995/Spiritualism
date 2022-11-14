@@ -9,9 +9,12 @@
     "MixinServerPlayer"
   ],
   "client": [
+    "MixinLivingEntityRenderer",
     "MixinMouseHandler",
     "MixinPlayerMenuItem",
-    "MixinTeleportToPlayerMenuCategory"
+    "MixinPlayerRenderer",
+    "MixinTeleportToPlayerMenuCategory",
+    "MixinTest"
   ],
   "injectors": {
     "defaultRequire": 1

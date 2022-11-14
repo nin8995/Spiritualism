@@ -10,6 +10,9 @@ import java.util.function.Supplier;
 public class ComponentPacket implements IPacket {
     protected Component c;
 
+    public ComponentPacket() {
+    }
+
     public ComponentPacket(String s) {
         this.c = Component.literal(s);
     }
@@ -18,9 +21,6 @@ public class ComponentPacket implements IPacket {
         this.c = c;
     }
 
-    public ComponentPacket(FriendlyByteBuf buf) {
-        this.c = buf.readComponent();
-    }
 
     @Override
     public void encode(FriendlyByteBuf buf) {
@@ -31,5 +31,10 @@ public class ComponentPacket implements IPacket {
     public void handle(Supplier<NetworkEvent.Context> context) {
         context.get().enqueueWork(() -> ChatUtils.showComponent(c));
         context.get().setPacketHandled(true);
+    }
+
+    @Override
+    public void decode(FriendlyByteBuf buf) {
+        this.c = buf.readComponent();
     }
 }

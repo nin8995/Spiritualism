@@ -23,7 +23,7 @@ public class MixinPlayerMenuItem {
     private GameProfile profile;
 
     @Inject(method = "selectItem", at = @At("HEAD"), cancellable = true)
-    private void injected(SpectatorMenu p_101762_, CallbackInfo ci) {
+    private void spiritPossesses(SpectatorMenu p_101762_, CallbackInfo ci) {
         var shMe = SpiritHandler.getFromClient(Minecraft.getInstance().player.getUUID());
         var sh = SpiritHandler.getFromClient(this.profile.getId());
         if (!shMe.isDead)

@@ -11,7 +11,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 public class MixinServerPlayer {
 
     @Redirect(method = "attack", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerPlayer;setCamera(Lnet/minecraft/world/entity/Entity;)V"))
-    private void injected(ServerPlayer sp, Entity e) {
+    private void spiritCannotPossessByAttacking(ServerPlayer sp, Entity e) {
         SpiritHandler.readOnServer(sp, sh -> {
             if (!sh.isDead)
                 sp.setCamera(e);

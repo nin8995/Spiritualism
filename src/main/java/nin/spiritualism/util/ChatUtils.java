@@ -6,11 +6,12 @@ import net.minecraft.client.gui.components.ChatComponent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MessageSignature;
 import net.minecraft.network.chat.Style;
+import nin.spiritualism.SpiritualismConfig;
 
 public class ChatUtils {
     public static final MessageSignature spiritSig = new MessageSignature(new byte[]{11, 45, 14});
-    public static final GuiMessageTag spiritTag = new GuiMessageTag(0xe2eff5, null, null, "Spiritualism");
-    public static final Style spiritStyle = Style.EMPTY.withColor(0x919da3).withItalic(true);
+    public static final GuiMessageTag spiritTag = new GuiMessageTag(ColorUtils.blend(SpiritualismConfig.spiritColor, 0xFFFFFF, 0.5F), null, null, "Spiritualism");
+    public static final Style spiritStyle = Style.EMPTY.withColor(ColorUtils.blend(SpiritualismConfig.spiritColor, 0, 0.25F)).withItalic(true);
     public static ChatComponent cc = Minecraft.getInstance().gui.getChat();
 
     public static Component refused(String name) {

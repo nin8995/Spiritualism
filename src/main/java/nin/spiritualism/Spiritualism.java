@@ -12,6 +12,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockBehaviour;
@@ -50,10 +51,16 @@ public class Spiritualism {
     public static final String MODID = "spiritualism";
     public static final Logger LOGGER = LogUtils.getLogger();
     public static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(ForgeRegistries.BLOCKS, MODID);
-    public static final RegistryObject<Block> EXAMPLE_BLOCK = BLOCKS.register("example_block", () -> new Block(BlockBehaviour.Properties.of(Material.STONE)));
     public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, MODID);
+    public static final CreativeModeTab MOD_TAB = new CreativeModeTab("spiritualism") {
+        public ItemStack makeIcon() {
+            return new ItemStack(Spiritualism.EXAMPLE_BLOCK.get());
+        }
+    };
+    public static final RegistryObject<Block> EXAMPLE_BLOCK = BLOCKS.register("example_block", () -> new Block(BlockBehaviour.Properties.of(Material.STONE)));
+
+    public static final RegistryObject<Item> EXAMPLE_ITEM = ITEMS.register("example_item", () -> new TestItem(new Item.Properties().tab(MOD_TAB)));
     public static final RegistryObject<Item> EXAMPLE_BLOCK_ITEM = ITEMS.register("example_block", () -> new BlockItem(EXAMPLE_BLOCK.get(), new Item.Properties().tab(CreativeModeTab.TAB_BUILDING_BLOCKS)));
-    public static final RegistryObject<Item> EXAMPLE_ITEM = ITEMS.register("example_item", () -> new TestItem(new Item.Properties().tab(CreativeModeTab.TAB_BUILDING_BLOCKS)));
     private static final List<TickingFunction> tickingFunctions = new ArrayList<>();
     private static final List<TickingFunction> deposedTickingFunctions = new ArrayList<>();
 
@@ -120,6 +127,7 @@ public class Spiritualism {
         commands.add(RefusePossessionCommand::new);
         commands.add(SoulUsageCommand::new);
         commands.add(SpiritAbilityCommand::new);
+        commands.add(TestCommand::new);
         commands.forEach(c -> dispatcher.register(c.get().register()));
     }
 
@@ -138,7 +146,12 @@ public class Spiritualism {
         public static void onClientSetup(FMLClientSetupEvent event) {
             Spiritualism.LOGGER.info("HELLO FROM CLIENT SETUP");
             Spiritualism.LOGGER.info("MINECRAFT NAME >> {}", Minecraft.getInstance().getUser().getName());
-        }
+        }/*
+
+        @SubscribeEvent
+        public static void registerShaders(RegisterShadersEvent e) throws IOException {
+            e.registerShader(new ShaderInstance(e.getResourceManager(), new ResourceLocation(MODID, "rendertype_entity_translucent_fabulous"), DefaultVertexFormat.NEW_ENTITY), s -> SpiritShader.rendertypeEntityTranslucentFabulousShader = s);
+        }*/
     }
 
     public static abstract class TickingFunction {

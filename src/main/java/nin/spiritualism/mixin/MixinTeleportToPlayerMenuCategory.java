@@ -28,7 +28,7 @@ public class MixinTeleportToPlayerMenuCategory {
     private List<SpectatorMenuItem> items;
 
     @Inject(method = "<init>(Ljava/util/Collection;)V", at = @At("TAIL"))
-    public void injected(Collection<PlayerInfo> pis, CallbackInfo ci) {
+    public void spiritCanTeleportToDeathPoint(Collection<PlayerInfo> pis, CallbackInfo ci) {
         PROFILE_ORDER.sortedCopy(pis).stream().filter(p -> SpiritHandler.getFromClient(p.getProfile().getId()).isSpirit(p.getGameMode()))
                 .forEach(p -> items.add(new PlayerMenuItem(p.getProfile())));
     }

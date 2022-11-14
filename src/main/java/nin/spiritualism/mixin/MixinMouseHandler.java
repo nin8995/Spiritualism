@@ -11,7 +11,7 @@ import org.spongepowered.asm.mixin.injection.ModifyArg;
 public class MixinMouseHandler {
 
     @ModifyArg(method = "onScroll", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/player/Abilities;setFlyingSpeed(F)V"))
-    public float injected(float f) {
+    public float spiritCannotFly(float f) {
         var p = Minecraft.getInstance().player;
         if (p != null && SpiritHandler.getFromClient(p.getUUID()).isSpirit(p))
             return 0F;

@@ -11,8 +11,9 @@ import java.util.function.Supplier;
 public interface IPacket {
     void encode(FriendlyByteBuf buf);
 
-    void handle(Supplier<NetworkEvent.Context> context);
+    void decode(FriendlyByteBuf buf);
 
+    void handle(Supplier<NetworkEvent.Context> context);
 
     default void toClient(ServerPlayer sp) {
         NetworkHandler.INSTANCE.send(PacketDistributor.PLAYER.with(() -> sp), this);

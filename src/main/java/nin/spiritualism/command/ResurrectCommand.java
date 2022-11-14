@@ -17,10 +17,8 @@ public class ResurrectCommand extends AbstractCommand {
 
     public static int resurrect(CommandContext<CommandSourceStack> context) {
         return executable(context, sp -> SpiritHandler.edit(sp, sh -> {
-            if (!sh.isDead) {
-                sh.soulPower = SpiritualismConfig.soulDivision;
-            } else {
-                sh.soulPower = SpiritualismConfig.soulDivision;
+            sh.soulPower = SpiritualismConfig.soulsPerDay;
+            if (sh.isDead) {
                 sh.isDead = false;
                 sp.setRespawnPosition(sh.previousRespawnDimension, sh.getPreviousRespawnPosition(), 0, false, false);
                 PlayerUtils.teleportToRespawn(sp);

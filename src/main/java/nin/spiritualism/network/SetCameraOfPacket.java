@@ -1,6 +1,5 @@
 package nin.spiritualism.network;
 
-import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.network.NetworkDirection;
 import net.minecraftforge.network.NetworkEvent;
@@ -11,12 +10,12 @@ import java.util.function.Supplier;
 
 public class SetCameraOfPacket extends UUIDPacket {
 
-    public SetCameraOfPacket(UUID p) {
-        super(p);
+    public SetCameraOfPacket() {
+        super();
     }
 
-    public SetCameraOfPacket(FriendlyByteBuf buf) {
-        super(buf);
+    public SetCameraOfPacket(UUID p) {
+        super(p);
     }
 
     @Override

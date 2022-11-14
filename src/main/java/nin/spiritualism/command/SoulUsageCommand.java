@@ -18,7 +18,7 @@ public class SoulUsageCommand extends AbstractCommand {
     @Override
     public LiteralArgumentBuilder<CommandSourceStack> register() {
         return Commands.literal("soulUsage").executes(SoulUsageCommand::showSoulUsage)
-                .then(Commands.argument("soulUsage", IntegerArgumentType.integer(0, SpiritualismConfig.soulDivision)).executes(SoulUsageCommand::setSoulUsage));
+                .then(Commands.argument("soulUsage", IntegerArgumentType.integer(1, SpiritualismConfig.soulsPerDay)).executes(SoulUsageCommand::setSoulUsage));
     }
 
     private static int showSoulUsage(CommandContext<CommandSourceStack> context) {

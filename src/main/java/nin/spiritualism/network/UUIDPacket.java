@@ -7,13 +7,12 @@ import java.util.UUID;
 public abstract class UUIDPacket implements IPacket {
     protected UUID uuid;
 
+    public UUIDPacket() {
+
+    }
 
     public UUIDPacket(UUID uuid) {
         this.uuid = uuid;
-    }
-
-    public UUIDPacket(FriendlyByteBuf buf) {
-        this.uuid = buf.readUUID();
     }
 
     @Override
@@ -21,4 +20,8 @@ public abstract class UUIDPacket implements IPacket {
         buf.writeUUID(uuid);
     }
 
+    @Override
+    public void decode(FriendlyByteBuf buf) {
+        this.uuid = buf.readUUID();
+    }
 }
